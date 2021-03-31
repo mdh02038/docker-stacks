@@ -13,12 +13,12 @@ ALL_STACKS:=base-notebook
 else
 ALL_STACKS:=base-notebook \
 	minimal-notebook \
-	r-notebook \
 	scipy-notebook \
-	tensorflow-notebook \
-	datascience-notebook \
-	pyspark-notebook \
-	all-spark-notebook
+#	datascience-notebook \
+#	tensorflow-notebook \
+#	r-notebook \
+#	pyspark-notebook \
+#	all-spark-notebook
 endif
 
 ALL_IMAGES:=$(ALL_STACKS)
@@ -47,10 +47,11 @@ arch_patch/%: ## apply hardware architecture specific patches to the Dockerfile
 		fi;\
 		patch -f ./$(notdir $@)/Dockerfile ./$(notdir $@)/Dockerfile.$(ARCH).patch; \
 	fi
-
+build/%: PLATFORMS ?= linux/amd64,linux/arm64
 build/%: DARGS?=
+build/%: BARGS?= --build-arg OWNER=$(OWNER)
 build/%: ## build the latest image for a stack
-	docker build $(DARGS) --rm --force-rm -t $(OWNER)/$(notdir $@):latest ./$(notdir $@)
+	docker buildx build  --push --platform $(PLATFORMS) $(DARGS) $(BARGS) --rm --force-rm -t $(OWNER)/$(notdir $@):latest ./$(notdir $@)
 	@echo -n "Built image size: "
 	@docker images $(OWNER)/$(notdir $@):latest --format "{{.Size}}"
 

@@ -4,7 +4,8 @@
 # Ubuntu 20.04 (focal)
 # https://hub.docker.com/_/ubuntu/?tab=tags&name=focal
 # OS/ARCH: linux/amd64
-ARG ROOT_CONTAINER=ubuntu:focal-20210217@sha256:e3d7ff9efd8431d9ef39a144c45992df5502c995b9ba3c53ff70c5b52a848d9c
+ARG ROOT_CONTAINER=ubuntu:focal-20210217
+#@sha256:e3d7ff9efd8431d9ef39a144c45992df5502c995b9ba3c53ff70c5b52a848d9c
 
 ARG BASE_CONTAINER=$ROOT_CONTAINER
 FROM $BASE_CONTAINER
@@ -13,6 +14,7 @@ LABEL maintainer="Jupyter Project <jupyter@googlegroups.com>"
 ARG NB_USER="jovyan"
 ARG NB_UID="1000"
 ARG NB_GID="100"
+ARG TARGETPLATFORM
 
 # Fix DL4006
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -28,7 +30,6 @@ ARG conda_version="4.9.2"
 # Miniforge installer patch version
 ARG miniforge_patch_number="7"
 # Miniforge installer architecture
-ARG miniforge_arch="x86_64"
 # Package Manager and Python implementation to use (https://github.com/conda-forge/miniforge)
 # - conda only: either Miniforge3 to use Python or Miniforge-pypy3 to use PyPy
 # - conda + mamba: either Mambaforge to use Python or Mambaforge-pypy3 to use PyPy
@@ -36,8 +37,6 @@ ARG miniforge_python="Mambaforge"
 
 # Miniforge archive to install
 ARG miniforge_version="${conda_version}-${miniforge_patch_number}"
-# Miniforge installer
-ARG miniforge_installer="${miniforge_python}-${miniforge_version}-Linux-${miniforge_arch}.sh"
 # Miniforge checksum
 ARG miniforge_checksum="5a827a62d98ba2217796a9dc7673380257ed7c161017565fba8ce785fb21a599"
 
@@ -104,10 +103,10 @@ RUN mkdir "/home/$NB_USER/work" && \
 WORKDIR /tmp
 
 # Prerequisites installation: conda, mamba, pip, tini
-RUN wget --quiet "https://github.com/conda-forge/miniforge/releases/download/${miniforge_version}/${miniforge_installer}" && \
-    echo "${miniforge_checksum} *${miniforge_installer}" | sha256sum --check && \
-    /bin/bash "${miniforge_installer}" -f -b -p $CONDA_DIR && \
-    rm "${miniforge_installer}" && \
+#    echo "${miniforge_checksum} *${miniforge_installer}" | sha256sum --check && \
+RUN wget --quiet "https://github.com/conda-forge/miniforge/releases/download/${miniforge_version}/${miniforge_python}-${miniforge_version}-Linux-$(echo $TARGETPLATFORM|cut -d/ -f2|sed -e 's/arm64/aarch64/'|sed -e 's/amd64/x86_64/').sh" && \
+    /bin/bash "${miniforge_python}-${miniforge_version}-Linux-$(echo $TARGETPLATFORM|cut -d/ -f2|sed -e 's/arm64/aarch64/'|sed -e 's/amd64/x86_64/').sh" -f -b -p $CONDA_DIR && \
+    rm "${miniforge_python}-${miniforge_version}-Linux-$(echo $TARGETPLATFORM|cut -d/ -f2|sed -e 's/arm64/aarch64/'|sed -e 's/amd64/x86_64/').sh" && \
     # Conda configuration see https://conda.io/projects/conda/en/latest/configuration.html
     echo "conda ${CONDA_VERSION}" >> $CONDA_DIR/conda-meta/pinned && \
     conda config --system --set auto_update_conda false && \
